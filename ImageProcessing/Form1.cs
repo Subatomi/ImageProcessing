@@ -1,6 +1,6 @@
 using AForge.Video.DirectShow;
 using System.Runtime.Intrinsics.X86;
-using WebCamLib;
+//using WebCamLib;
 using ImageProcess2;
 using AForge.Video;
 using System.Diagnostics;
@@ -216,36 +216,26 @@ namespace ImageProcessing
 
         private void video_NewFrame(object sender, NewFrameEventArgs eventArgs)
         {
-            
-            // Clone the current frame
             loaded = (Bitmap)eventArgs.Frame.Clone();
-            processed = (Bitmap)eventArgs.Frame.Clone(); // Create a new clone for processing
-
-            // Flip the loaded frame horizontally
             loaded.RotateFlip(RotateFlipType.RotateNoneFlipX);
-            processed.RotateFlip(RotateFlipType.RotateNoneFlipX);
-
-            // Update the PictureBox with the loaded frame
             pictureBox1.Image = loaded;
+            pictureBox5.Image = null;
         }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            if (processed != null)
-            {
-                Bitmap b = null;
 
+            if (pictureBox1.Image != null)
+            {
                 try
                 {
-                    b = (Bitmap)processed.Clone();
+                    processed = (Bitmap)pictureBox1.Image.Clone();
 
-                    BitmapFilter.GrayScale(b); 
-
-                    pictureBox2.Image = b; 
+                    BitmapFilter.GrayScale(processed);
+                    pictureBox2.Image = processed;
                 }
                 catch (InvalidOperationException)
                 {
-                    
                 }
             }
         }
@@ -306,16 +296,119 @@ namespace ImageProcessing
         }
 
         private void openFileDialog2_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
-        {   
+        {
             imageB = new Bitmap(openFileDialog2.FileName);
-            pictureBox3.Image = imageB;
+            pictureBox1.Image = imageB;
         }
 
         private void openFileDialog3_FileOk(object sender, System.ComponentModel.CancelEventArgs e)
         {
             imageA = new Bitmap(openFileDialog3.FileName);
-            pictureBox4.Image = imageA;
+            pictureBox2.Image = imageA;
 
+        }
+
+        private void sharpenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.Sharpen(m, 11);
+            pictureBox2.Image = m;
+        }
+
+        private void blurToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.GaussianBlur(m, 11);
+            pictureBox2.Image = m;
+        }
+
+        private void edgeEnhanceToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EdgeEnhance(m, 11);
+            pictureBox2.Image = m;
+        }
+
+        private void edgeDetectToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void embossToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EmbossLaplacian(m);
+            pictureBox2.Image = m;
+        }
+
+        private void edgeDetectQuickToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EdgeDetectQuick(m);
+            pictureBox2.Image = m;
+        }
+
+        private void prewittToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EdgeDetectConvolution(m, 2, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void sobelToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EdgeDetectConvolution(m, 1, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void kirshToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EdgeDetectConvolution(m, 3, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void horizontalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BasicDIP.EdgeDetectConvolution(m, 1, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void verticalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BasicDIP.EdgeDetectConvolution(m, 2, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void horzVerticalToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BasicDIP.EdgeDetectConvolution(m, 3, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void allDirectionsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BasicDIP.EdgeDetectConvolution(m, 4, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void lossyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BasicDIP.EdgeDetectConvolution(m, 5, 75);
+            pictureBox2.Image = m;
+        }
+
+        private void edgeDetectQuickToolStripMenuItem_Click_1(object sender, EventArgs e)
+        {
+            Bitmap m = (Bitmap)pictureBox1.Image.Clone();
+            BitmapFilter.EdgeDetectQuick(m);
+            pictureBox2.Image = m;
         }
     }
 

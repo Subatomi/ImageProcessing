@@ -1,5 +1,7 @@
-﻿using System;
+﻿using ImageProcess2;
+using System;
 using System.Collections.Generic;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,6 +10,12 @@ namespace ImageProcessing
 {
     static class BasicDIP
     {
+        public const short EDGE_DETECT_HORZ_ONLY = 1;
+        public const short EDGE_DETECT_VERT_ONLY = 2;
+        public const short EDGE_DETECT_HORZ_VERT = 3;
+        public const short EDGE_DETECT_ALL_DIR = 4;
+        public const short EDGE_DETECT_LOSSY = 5;
+
 
         public static void Subtract(ref Bitmap a, ref Bitmap b, ref Bitmap result, int value)
         {
@@ -153,10 +161,6 @@ namespace ImageProcessing
             }
         }
 
-
-
-
-
         public static void Brightness(ref Bitmap a, ref Bitmap b, int value)
         {
             b = new Bitmap(a.Width, a.Height);
@@ -179,10 +183,6 @@ namespace ImageProcessing
                 }
             }
         }
-
-
-
-
 
         public static void Hist(ref Bitmap a, ref Bitmap b)
         {
@@ -230,5 +230,145 @@ namespace ImageProcessing
                 }
             }
         }
+
+
+        public static bool EdgeDetectConvolution(Bitmap b, short nType, byte nThreshold)
+        {
+            ConvMatrix m = new ConvMatrix();
+
+            // I need to make a copy of this bitmap BEFORE I alter it
+            Bitmap bTemp = (Bitmap)b.Clone();
+
+            // Set convolution matrices based on the edge detection type
+            switch (nType)
+            {
+                // Define custom edge detection types
+                case EDGE_DETECT_HORZ_VERT:
+                    m.SetAll(0);
+                    m.TopLeft = m.BottomLeft = -1;
+                    m.TopRight = m.BottomRight = 1;
+                    m.MidLeft = m.MidRight = 0;
+                    m.Offset = 1 + 127;  
+                    break;
+
+                case EDGE_DETECT_ALL_DIR:
+                    m.SetAll(-1);
+                    m.Pixel = 8;
+                    m.TopLeft = m.TopRight = m.BottomLeft = m.BottomRight = -1;
+                    m.Offset = 1 + 127;
+                    break;
+
+                case EDGE_DETECT_LOSSY:
+                    m.SetAll(1);
+                    m.TopLeft = m.TopRight = 1;
+                    m.MidLeft = m.MidRight = -2;
+                    m.BottomLeft = m.BottomRight = 1;
+                    m.Offset = 1 + 127;  
+                    break;
+
+                case EDGE_DETECT_HORZ_ONLY:
+                    m.SetAll(0);
+                    m.TopLeft = m.MidLeft = m.BottomLeft = -1;
+                    m.TopRight = m.MidRight = m.BottomRight = 1;
+                    m.Offset = 1 + 127;  
+                    break;
+
+                case EDGE_DETECT_VERT_ONLY:
+                    m.SetAll(0);
+                    m.TopLeft = m.TopMid = m.TopRight = -1;
+                    m.MidLeft = m.MidRight = 2;
+                    m.BottomLeft = m.BottomMid = m.BottomRight = -1;
+                    m.Offset = 1 + 127;  
+                    break;
+            }
+            BitmapFilter.Conv3x3(b, m);
+
+            switch (nType)
+            {
+                case EDGE_DETECT_HORZ_VERT:
+                    m.SetAll(0);
+                    m.TopLeft = m.BottomLeft = -1;
+                    m.TopRight = m.BottomRight = 1;
+                    m.MidLeft = m.MidRight = 0;
+                    m.Offset = 1 + 127;  
+                    break;
+
+                case EDGE_DETECT_ALL_DIR:
+                    m.SetAll(-1);
+                    m.Pixel = 8;
+                    m.TopLeft = m.TopRight = m.BottomLeft = m.BottomRight = -1;
+                    m.Offset = 1 + 127;  
+                    break;
+
+                case EDGE_DETECT_LOSSY:
+                    m.SetAll(1);
+                    m.TopLeft = m.TopRight = 1;
+                    m.MidLeft = m.MidRight = -2;
+                    m.BottomLeft = m.BottomRight = 1;
+                    m.Offset = 1 + 127;
+                    break;
+
+                case EDGE_DETECT_HORZ_ONLY:
+                    m.SetAll(0);
+                    m.TopLeft = m.MidLeft = m.BottomLeft = -1;
+                    m.TopRight = m.MidRight = m.BottomRight = 1;
+                    m.Offset = 1 + 127; 
+                    break;
+
+                case EDGE_DETECT_VERT_ONLY:
+                    m.SetAll(0);
+                    m.TopLeft = m.TopMid = m.TopRight = -1;
+                    m.MidLeft = m.MidRight = 2;
+                    m.BottomLeft = m.BottomMid = m.BottomRight = -1;
+                    m.Offset = 1 + 127; 
+                    break;
+            }
+            BitmapFilter.Conv3x3(bTemp, m);
+
+            // GDI+ returns image data in BGR, not RGB, so we process the data accordingly
+            BitmapData bmData = b.LockBits(new Rectangle(0, 0, b.Width, b.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            BitmapData bmData2 = bTemp.LockBits(new Rectangle(0, 0, b.Width, b.Height), ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+
+            int stride = bmData.Stride;
+            IntPtr Scan0 = bmData.Scan0;
+            IntPtr Scan02 = bmData2.Scan0;
+
+            unsafe
+            {
+                byte* p = (byte*)(void*)Scan0;
+                byte* p2 = (byte*)(void*)Scan02;
+
+                int nOffset = stride - b.Width * 3;
+                int nWidth = b.Width * 3;
+
+                int nPixel = 0;
+
+                for (int y = 0; y < b.Height; ++y)
+                {
+                    for (int x = 0; x < nWidth; ++x)
+                    {
+                        nPixel = (int)Math.Sqrt((p[0] * p[0]) + (p2[0] * p2[0]));
+
+                        if (nPixel < nThreshold)
+                            nPixel = nThreshold;
+                        if (nPixel > 255)
+                            nPixel = 255;
+
+                        p[0] = (byte)nPixel;
+
+                        ++p;
+                        ++p2;
+                    }
+                    p += nOffset;
+                    p2 += nOffset;
+                }
+            }
+
+            b.UnlockBits(bmData);
+            bTemp.UnlockBits(bmData2);
+
+            return true;
+        }
+
     }
 }
